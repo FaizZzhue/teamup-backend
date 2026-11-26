@@ -9,3 +9,4 @@ router.use(verifikasiToken, hanyaPeran('admin'));
 router.get('/statistik', ambilStatistikAdmin);
 
 module.exports = router;
+
