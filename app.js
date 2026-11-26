@@ -15,6 +15,13 @@ const timRoutes = require('./Routes/timRoutes');
 const notifikasiRoutes = require('./Routes/notifikasiRoutes');
 const pesanRoutes = require('./Routes/pesanRoutes');
 const adminRoutes = require('./Routes/adminRoutes');
+const Pengguna = require('./Models/Pengguna');
+const Kompetisi = require('./Models/Kompetisi');
+const Tim = require('./Models/Tim');
+const Rekrutmen = require('./Models/Rekrutmen');
+const Kecocokan = require('./Models/Kecocokan');
+const Notifikasi = require('./Models/Notifikasi');
+const Pesan = require('./Models/Pesan');
 
 // Tolak menyala bila JWT_SECRET belum diisi di .env
 if (require.main === module && !process.env.JWT_SECRET) {
@@ -69,10 +76,59 @@ async function hubungkanDB() {
     return janjiKoneksi;
 }
 
-// Health check root (publik)
-app.get('/', (req, res) => {
-    const statusDb = ['terputus', 'terhubung', 'menghubungkan', 'memutus'];
-    res.status(200).json({ sukses: true, layanan: 'TEAMUP Backend API', database: statusDb[mongoose.connection.readyState] || 'tidak diketahui' });
+// Halaman utama API (publik): menampilkan status layanan, ringkasan jumlah data real-time, dan daftar endpoint
+app.get('/', async (req, res, next) => {
+    try {
+        if (process.env.VERCEL && mongoose.connection.readyState !== 1) await hubungkanDB();
+
+        const statusDb = ['terputus', 'terhubung', 'menghubungkan', 'memutus'];
+        const terhubung = mongoose.connection.readyState === 1;
+
+        let ringkasanDatabase = { pengguna: 0, kompetisi: 0, tim: 0, rekrutmen: 0, kecocokan: 0, notifikasi: 0, pesan: 0 };
+        if (terhubung) {
+            const [pengguna, kompetisi, tim, rekrutmen, kecocokan, notifikasi, pesan] = await Promise.all([
+                Pengguna.countDocuments(),
+                Kompetisi.countDocuments(),
+                Tim.countDocuments(),
+                Rekrutmen.countDocuments(),
+                Kecocokan.countDocuments(),
+                Notifikasi.countDocuments(),
+                Pesan.countDocuments(),
+            ]);
+            ringkasanDatabase = { pengguna, kompetisi, tim, rekrutmen, kecocokan, notifikasi, pesan };
+        }
+
+        return res.status(200).json({
+            sukses: true,
+            layanan: 'TEAMUP Backend API',
+            deskripsi: 'Campus Talent & Competition Matching Platform — Proyek Akhir PAW II (Kelompok 7 / SI5C)',
+            versi: '1.0.0',
+            database: statusDb[mongoose.connection.readyState] || 'tidak diketahui',
+            waktuServer: new Date().toISOString(),
+            ringkasanDatabase,
+            autentikasi: {
+                metode: 'JWT Stateless (Bearer Token)',
+                header: 'Authorization: Bearer <token>',
+                daftar: 'POST /api/auth/register',
+                masuk: 'POST /api/auth/login',
+                profilAktif: 'GET /api/auth/me',
+            },
+            daftarEndpoint: {
+                autentikasi: ['POST /api/auth/register', 'POST /api/auth/login', 'GET /api/auth/me'],
+                pengguna: ['GET /api/pengguna (admin)', 'GET /api/pengguna/:id', 'PUT /api/pengguna/profil', 'POST /api/pengguna/:id/dukung', 'PATCH /api/pengguna/:id/peran (admin)'],
+                talenta: ['GET /api/talenta'],
+                kompetisi: ['GET /api/kompetisi', 'GET /api/kompetisi/:id', 'POST /api/kompetisi (admin)', 'PUT /api/kompetisi/:id (admin)', 'DELETE /api/kompetisi/:id (admin)', 'POST /api/kompetisi/:id/simpan'],
+                rekrutmen: ['GET /api/rekrutmen', 'GET /api/rekrutmen/:id', 'POST /api/rekrutmen', 'POST /api/rekrutmen/:id/lamar', 'PATCH /api/rekrutmen/:id/pelamar/:idPelamar'],
+                kecocokan: ['POST /api/kecocokan/undang', 'GET /api/kecocokan', 'PATCH /api/kecocokan/:id/respon'],
+                tim: ['GET /api/tim/tim-saya', 'GET /api/tim/:id', 'POST /api/tim/:id/tugas', 'PATCH /api/tim/:id/tugas/:idTugas'],
+                notifikasi: ['GET /api/notifikasi', 'PATCH /api/notifikasi/:id/baca', 'PATCH /api/notifikasi/baca-semua'],
+                pesan: ['POST /api/pesan', 'GET /api/pesan/:idTarget'],
+                admin: ['GET /api/admin/statistik (admin)'],
+            },
+        });
+    } catch (err) {
+        return next(err);
+    }
 });
 
 // Serverless Vercel: pastikan koneksi MongoDB siap sebelum rute /api dijalankan
