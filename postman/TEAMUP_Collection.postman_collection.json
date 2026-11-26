@@ -1,0 +1,502 @@
+{
+  "info": {
+    "_postman_id": "teamup-mvp-collection-id-001",
+    "name": "TEAMUP Backend REST API (Bahasa Indonesia + Automated Tests)",
+    "description": "Collection pengujian otomatis end-to-end seluruh endpoint MVP TEAMUP (PAW 2 - Universitas MDP) dalam Bahasa Indonesia. Pastikan server berjalan dan akun admin sudah dibuat via 'npm run create-admin' atau 'npm run seed'.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Kesehatan Server & Autentikasi",
+      "item": [
+        {
+          "name": "Cek Kesehatan Server (GET /)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status respons harus 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Database harus dalam status terhubung', () => { const j = pm.response.json(); pm.expect(j.sukses).to.eql(true); pm.expect(j.database).to.eql('terhubung'); });"
+          ] } }],
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/" }
+        },
+        {
+          "name": "Login Admin (dibuat via buatAdmin.js / seed.js)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Login admin berhasil 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Mengembalikan token JWT dan peran admin', () => { const j = pm.response.json(); pm.expect(j.data.token).to.be.a('string').and.not.empty; pm.expect(j.data.pengguna.peran).to.eql('admin'); pm.environment.set('token_admin', j.data.token); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email_admin}}\",\n  \"kataSandi\": \"{{sandi_admin}}\"\n}" },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Daftar Mahasiswa 1 (Ketua Tim)",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.environment.set('email_ketua', 'ketua.' + Date.now() + '@mhs.mdp.ac.id');"] } },
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('Registrasi berhasil 201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Peran dipaksa mahasiswa dan kataSandi tidak bocor', () => { const j = pm.response.json(); pm.expect(j.data.token).to.be.a('string'); pm.expect(j.data.pengguna.peran).to.eql('mahasiswa'); pm.expect(j.data.pengguna).to.not.have.property('kataSandi'); pm.environment.set('token_ketua', j.data.token); pm.environment.set('id_ketua', j.data.pengguna.id); });"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"namaLengkap\": \"Faiz Ketua Uji\",\n  \"email\": \"{{email_ketua}}\",\n  \"kataSandi\": \"Password123!\",\n  \"peran\": \"admin\",\n  \"universitas\": \"Universitas MDP\",\n  \"fakultas\": \"Fakultas Ilmu Komputer dan Rekayasa\",\n  \"jurusan\": \"Sistem Informasi\",\n  \"spesialisasi\": \"Pengembang Backend\",\n  \"keahlian\": [\"Node.js\", \"Express.js\", \"MongoDB\"]\n}" },
+            "url": "{{base_url}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Daftar Mahasiswa 2 (Kandidat Pelamar)",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.environment.set('email_kandidat', 'kandidat.' + Date.now() + '@mhs.mdp.ac.id');"] } },
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('Registrasi kandidat berhasil 201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Menyimpan token_kandidat dan id_kandidat', () => { const j = pm.response.json(); pm.environment.set('token_kandidat', j.data.token); pm.environment.set('id_kandidat', j.data.pengguna.id); });"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"namaLengkap\": \"Rayhan Kandidat Uji\",\n  \"email\": \"{{email_kandidat}}\",\n  \"kataSandi\": \"Password123!\",\n  \"universitas\": \"Universitas MDP\",\n  \"fakultas\": \"Fakultas Ilmu Komputer dan Rekayasa\",\n  \"jurusan\": \"Informatika\",\n  \"spesialisasi\": \"Pengembang Frontend\",\n  \"keahlian\": [\"React\", \"Node.js\", \"Tailwind CSS\"]\n}" },
+            "url": "{{base_url}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Daftar Mahasiswa 3 (Kandidat Undangan Kecocokan)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Registrasi kandidat 2 berhasil 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('Menyimpan token_kandidat2 dan id_kandidat2', () => { const j = pm.response.json(); pm.environment.set('token_kandidat2', j.data.token); pm.environment.set('id_kandidat2', j.data.pengguna.id); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"namaLengkap\": \"Rizky Desainer Uji\",\n  \"email\": \"desainer.{{$timestamp}}@mhs.mdp.ac.id\",\n  \"kataSandi\": \"Password123!\",\n  \"universitas\": \"Universitas MDP\",\n  \"fakultas\": \"Fakultas Ilmu Komputer dan Rekayasa\",\n  \"jurusan\": \"Sistem Informasi\",\n  \"spesialisasi\": \"Desainer UI/UX\",\n  \"keahlian\": [\"Figma\", \"Prototyping\", \"Node.js\"]\n}" },
+            "url": "{{base_url}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login Ketua",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Login ketua berhasil 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Token dan email pengguna cocok', () => { const j = pm.response.json(); pm.expect(j.data.token).to.be.a('string'); pm.expect(j.data.pengguna.email).to.eql(pm.environment.get('email_ketua')); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email_ketua}}\",\n  \"kataSandi\": \"Password123!\"\n}" },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Ambil Profil Aktif (GET /api/auth/me)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK untuk pengguna terautentikasi', () => pm.response.to.have.status(200));",
+            "pm.test('Memuat kekuatanProfil tanpa kataSandi', () => { const j = pm.response.json(); pm.expect(j.data.kekuatanProfil).to.be.a('number'); pm.expect(j.data).to.not.have.property('kataSandi'); });"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_ketua}}" }], "url": "{{base_url}}/api/auth/me" }
+        }
+      ]
+    },
+    {
+      "name": "2. Pengguna, Profil & Admin",
+      "item": [
+        {
+          "name": "Ubah Profil & Tambah Portofolio (PUT /api/pengguna/profil)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Ubah profil berhasil 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Portofolio tersimpan dan kekuatanProfil meningkat', () => { const j = pm.response.json(); pm.expect(j.data.portofolio.length).to.be.at.least(1); pm.expect(j.data.kekuatanProfil).to.be.at.least(80); });"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_ketua}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"bio\": \"Pengembang backend mahasiswa yang fokus pada REST API Express dan MongoDB.\",\n  \"spesialisasi\": \"Pengembang Backend & Cloud\",\n  \"keahlian\": [\"Node.js\", \"Express.js\", \"MongoDB\", \"React\"],\n  \"tersedia\": true,\n  \"tambahPortofolio\": {\n    \"judul\": \"TEAMUP REST API\",\n    \"deskripsi\": \"Platform pencarian rekan tim dan kompetisi kampus.\",\n    \"kategori\": \"Pengembangan Web\",\n    \"tautan\": \"https://github.com/teamup/backend\"\n  }\n}" },
+            "url": "{{base_url}}/api/pengguna/profil"
+          }
+        },
+        {
+          "name": "Detail Profil Mahasiswa (GET /api/pengguna/:id)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Menampilkan keahlian dan portofolio mahasiswa', () => { const j = pm.response.json(); pm.expect(j.data.keahlian).to.be.an('array'); pm.expect(j.data.portofolio).to.be.an('array'); });"
+          ] } }],
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/pengguna/{{id_ketua}}" }
+        },
+        {
+          "name": "Dukung Keahlian Mahasiswa Lain (POST /api/pengguna/:id/dukung)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Dukungan berhasil 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('jumlahDukungan bertambah minimal 1', () => pm.expect(pm.response.json().data.jumlahDukungan).to.be.at.least(1));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_ketua}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"keahlian\": \"React\"\n}" },
+            "url": "{{base_url}}/api/pengguna/{{id_kandidat}}/dukung"
+          }
+        },
+        {
+          "name": "Admin - Daftar Semua Pengguna (GET /api/pengguna)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Admin berhasil mengambil daftar pengguna 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Format pagination lengkap (data, halaman, batas, total, totalHalaman)', () => { const j = pm.response.json(); pm.expect(j.data).to.be.an('array'); pm.expect(j).to.have.all.keys('sukses', 'pesan', 'data', 'halaman', 'batas', 'total', 'totalHalaman'); });"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }], "url": "{{base_url}}/api/pengguna?halaman=1&batas=5&urutkan=-createdAt&kolom=namaLengkap,email,peran,universitas" }
+        },
+        {
+          "name": "Admin - Statistik Dashboard (GET /api/admin/statistik)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Statistik admin 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Memuat ringkasan pengguna, kompetisi, dan tim', () => { const j = pm.response.json(); pm.expect(j.data).to.have.property('pengguna'); pm.expect(j.data).to.have.property('kompetisi'); pm.expect(j.data).to.have.property('tim'); });"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }], "url": "{{base_url}}/api/admin/statistik" }
+        }
+      ]
+    },
+    {
+      "name": "3. Temukan Talenta",
+      "item": [
+        {
+          "name": "Temukan Talenta (Filter, Skor Kecocokan & Pagination)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Daftar talenta berhasil 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Mengembalikan kandidat dengan skorKecocokan dan pagination', () => { const j = pm.response.json(); pm.expect(j.data).to.be.an('array').and.not.empty; pm.expect(j.data[0]).to.have.property('skorKecocokan'); pm.expect(j.halaman).to.eql(1); pm.expect(j.batas).to.eql(5); });"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_ketua}}" }], "url": "{{base_url}}/api/talenta?keahlian=Node.js,React&hanyaTersedia=true&skorMinimal=10&urutkan=-skorKecocokan&halaman=1&batas=5" }
+        }
+      ]
+    },
+    {
+      "name": "4. Kompetisi",
+      "item": [
+        {
+          "name": "Admin - Buat Kompetisi Baru (POST /api/kompetisi)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Kompetisi berhasil dibuat 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('Menyimpan id_kompetisi', () => { const j = pm.response.json(); pm.expect(j.data._id).to.be.a('string'); pm.environment.set('id_kompetisi', j.data._id); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nama\": \"TEAMUP Hackathon Uji 2026\",\n  \"penyelenggara\": \"Universitas MDP\",\n  \"deskripsi\": \"Hackathon pengembangan web dan AI tingkat mahasiswa nasional.\",\n  \"kategori\": \"Hackathon\",\n  \"totalHadiah\": \"Rp 50.000.000\",\n  \"tanggalMulaiDaftar\": \"2026-11-01T00:00:00.000Z\",\n  \"batasPendaftaran\": \"2026-12-25T23:59:59.000Z\",\n  \"ukuranTim\": { \"minimal\": 2, \"maksimal\": 4 },\n  \"status\": \"aktif\"\n}" },
+            "url": "{{base_url}}/api/kompetisi"
+          }
+        },
+        {
+          "name": "Daftar Kompetisi (Filter, Urut Batas Pendaftaran & Kolom)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Format respons pagination dan proyeksi sesuai', () => { const j = pm.response.json(); pm.expect(j.data).to.be.an('array'); pm.expect(j.total).to.be.a('number'); });"
+          ] } }],
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/kompetisi?kategori=Hackathon&urutkan=batasPendaftaran&kolom=nama,penyelenggara,kategori,totalHadiah,batasPendaftaran&halaman=1&batas=5" }
+        },
+        {
+          "name": "Detail Kompetisi (GET /api/kompetisi/:id)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Detail kompetisi 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('ID kompetisi cocok', () => pm.expect(pm.response.json().data._id).to.eql(pm.environment.get('id_kompetisi')));"
+          ] } }],
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/kompetisi/{{id_kompetisi}}" }
+        },
+        {
+          "name": "Admin - Ubah Kompetisi (PUT /api/kompetisi/:id)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Ubah kompetisi 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('totalHadiah berhasil diperbarui', () => pm.expect(pm.response.json().data.totalHadiah).to.eql('Rp 75.000.000'));"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"totalHadiah\": \"Rp 75.000.000\"\n}" },
+            "url": "{{base_url}}/api/kompetisi/{{id_kompetisi}}"
+          }
+        },
+        {
+          "name": "Toggle Simpan Kompetisi (POST /api/kompetisi/:id/simpan)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Simpan kompetisi 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Status sudahDisimpan menjadi true', () => pm.expect(pm.response.json().data.sudahDisimpan).to.eql(true));"
+          ] } }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token_ketua}}" }], "url": "{{base_url}}/api/kompetisi/{{id_kompetisi}}/simpan" }
+        }
+      ]
+    },
+    {
+      "name": "5. Rekrutmen & Anggota Tim",
+      "item": [
+        {
+          "name": "Buat Rekrutmen + Tim Awal (POST /api/rekrutmen)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Rekrutmen dan Tim awal dibuat 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('Menyimpan id_rekrutmen dan id_tim', () => { const j = pm.response.json(); pm.environment.set('id_rekrutmen', j.data.rekrutmen._id); pm.environment.set('id_tim', j.data.tim._id); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_ketua}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"judul\": \"Cari Frontend & UI/UX untuk Hackathon\",\n  \"deskripsi\": \"Membangun aplikasi kampus berbasis AI untuk TEAMUP Hackathon.\",\n  \"kompetisi\": \"{{id_kompetisi}}\",\n  \"namaTim\": \"Tim Semelohoy\",\n  \"peranKetua\": \"Pengembang Backend\",\n  \"komitmen\": \"Sprint Hackathon\",\n  \"peranDibutuhkan\": [\n    { \"namaPeran\": \"Pengembang Frontend\", \"keahlianDibutuhkan\": [\"React\", \"Tailwind CSS\"], \"kuota\": 1 },\n    { \"namaPeran\": \"Desainer UI/UX\", \"keahlianDibutuhkan\": [\"Figma\"], \"kuota\": 1 }\n  ]\n}" },
+            "url": "{{base_url}}/api/rekrutmen"
+          }
+        },
+        {
+          "name": "Daftar Rekrutmen (Filter Kategori & Komitmen)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Mengembalikan array rekrutmen dengan pagination', () => { const j = pm.response.json(); pm.expect(j.data).to.be.an('array').and.not.empty; pm.expect(j.total).to.be.at.least(1); });"
+          ] } }],
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/rekrutmen?kategori=Hackathon&komitmen=Sprint%20Hackathon&urutkan=-createdAt&halaman=1&batas=5" }
+        },
+        {
+          "name": "Kandidat Melamar Peran (POST /api/rekrutmen/:id/lamar)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Lamaran terkirim 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('Status pelamar menunggu dan menyimpan id_pelamar', () => { const j = pm.response.json(); pm.expect(j.data.status).to.eql('menunggu'); pm.environment.set('id_pelamar', j.data._id); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_kandidat}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"peranDilamar\": \"Pengembang Frontend\",\n  \"pesanMotivasi\": \"Saya berpengalaman React + Tailwind dan siap sprint penuh!\",\n  \"tautanPortofolio\": \"https://github.com/rayhan/portofolio\"\n}" },
+            "url": "{{base_url}}/api/rekrutmen/{{id_rekrutmen}}/lamar"
+          }
+        },
+        {
+          "name": "Ketua Menerima Pelamar (PATCH /api/rekrutmen/:id/pelamar/:idPelamar)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Keputusan lamaran 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Pelamar diterima dan otomatis masuk ke anggota tim', () => { const j = pm.response.json(); pm.expect(j.data.pelamar.status).to.eql('diterima'); pm.expect(j.data.tim.anggota.length).to.be.at.least(2); });"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_ketua}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"diterima\"\n}" },
+            "url": "{{base_url}}/api/rekrutmen/{{id_rekrutmen}}/pelamar/{{id_pelamar}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Kecocokan & Undangan Tim",
+      "item": [
+        {
+          "name": "Kirim Undangan Kecocokan (POST /api/kecocokan/undang)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Undangan berhasil dikirim 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('skorKecocokan dihitung otomatis dan menyimpan id_kecocokan', () => { const j = pm.response.json(); pm.expect(j.data.skorKecocokan).to.be.a('number'); pm.environment.set('id_kecocokan', j.data._id); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_ketua}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idPenerima\": \"{{id_kandidat2}}\",\n  \"idTim\": \"{{id_tim}}\",\n  \"idRekrutmen\": \"{{id_rekrutmen}}\",\n  \"pesan\": \"Keahlian UI/UX kamu cocok untuk Tim Semelohoy!\"\n}" },
+            "url": "{{base_url}}/api/kecocokan/undang"
+          }
+        },
+        {
+          "name": "Lihat Undangan Masuk & Keluar (GET /api/kecocokan)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Memiliki daftar undangan masuk', () => pm.expect(pm.response.json().data.masuk.length).to.be.at.least(1));"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_kandidat2}}" }], "url": "{{base_url}}/api/kecocokan" }
+        },
+        {
+          "name": "Kandidat Menerima Undangan (PATCH /api/kecocokan/:id/respon)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Respon undangan 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Status kecocokan diterima dan bergabung ke tim', () => { const j = pm.response.json(); pm.expect(j.data.kecocokan.status).to.eql('diterima'); pm.expect(j.data.tim.anggota.length).to.be.at.least(3); });"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_kandidat2}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"diterima\",\n  \"peran\": \"Desainer UI/UX\"\n}" },
+            "url": "{{base_url}}/api/kecocokan/{{id_kecocokan}}/respon"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Tim & Tugas Ruang Kerja",
+      "item": [
+        {
+          "name": "Daftar Tim Saya (GET /api/tim/tim-saya)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Menampilkan minimal 1 tim aktif', () => pm.expect(pm.response.json().data.length).to.be.at.least(1));"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_ketua}}" }], "url": "{{base_url}}/api/tim/tim-saya" }
+        },
+        {
+          "name": "Detail Ruang Kerja Tim (GET /api/tim/:id)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Detail tim 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Memuat daftar anggota dan tugas', () => { const j = pm.response.json(); pm.expect(j.data.anggota).to.be.an('array'); pm.expect(j.data.tugas).to.be.an('array'); });"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_ketua}}" }], "url": "{{base_url}}/api/tim/{{id_tim}}" }
+        },
+        {
+          "name": "Tambah Tugas Tim (POST /api/tim/:id/tugas)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Tugas tim dibuat 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('Menyimpan id_tugas', () => { const j = pm.response.json(); pm.expect(j.data._id).to.be.a('string'); pm.environment.set('id_tugas', j.data._id); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_ketua}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"judul\": \"Integrasi Halaman Temukan Talenta\",\n  \"deskripsi\": \"Hubungkan React frontend ke GET /api/talenta\",\n  \"ditugaskanKe\": \"{{id_kandidat}}\",\n  \"status\": \"belum\"\n}" },
+            "url": "{{base_url}}/api/tim/{{id_tim}}/tugas"
+          }
+        },
+        {
+          "name": "Ubah Status Tugas Tim (PATCH /api/tim/:id/tugas/:idTugas)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Ubah tugas berhasil 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Status tugas berubah menjadi dikerjakan', () => pm.expect(pm.response.json().data.status).to.eql('dikerjakan'));"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_kandidat}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"dikerjakan\"\n}" },
+            "url": "{{base_url}}/api/tim/{{id_tim}}/tugas/{{id_tugas}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Notifikasi & Pesan",
+      "item": [
+        {
+          "name": "Ambil Notifikasi (GET /api/notifikasi)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Notifikasi berhasil diambil 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Memuat daftar notifikasi dan jumlahBelumDibaca', () => { const j = pm.response.json(); pm.expect(j.data).to.be.an('array').and.not.empty; pm.expect(j.jumlahBelumDibaca).to.be.a('number'); pm.environment.set('id_notifikasi', j.data[0]._id); });"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_ketua}}" }], "url": "{{base_url}}/api/notifikasi" }
+        },
+        {
+          "name": "Tandai Notifikasi Sudah Dibaca (PATCH /api/notifikasi/:id/baca)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Field sudahDibaca menjadi true', () => pm.expect(pm.response.json().data.sudahDibaca).to.eql(true));"
+          ] } }],
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{token_ketua}}" }], "url": "{{base_url}}/api/notifikasi/{{id_notifikasi}}/baca" }
+        },
+        {
+          "name": "Kirim Pesan Pribadi (POST /api/pesan)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Pesan pribadi terkirim 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('Isi pesan tersimpan dengan benar', () => pm.expect(pm.response.json().data.isi).to.eql('Halo, siap mulai sprint malam ini?'));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_ketua}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idPenerima\": \"{{id_kandidat}}\",\n  \"isi\": \"Halo, siap mulai sprint malam ini?\"\n}" },
+            "url": "{{base_url}}/api/pesan"
+          }
+        },
+        {
+          "name": "Ambil Riwayat Pesan Pribadi (GET /api/pesan/:idTarget)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Riwayat pesan pribadi 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('jenisObrolan adalah pribadi', () => { const j = pm.response.json(); pm.expect(j.data.jenisObrolan).to.eql('pribadi'); pm.expect(j.data.pesan.length).to.be.at.least(1); });"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_kandidat}}" }], "url": "{{base_url}}/api/pesan/{{id_ketua}}" }
+        },
+        {
+          "name": "Kirim Pesan Grup Tim (POST /api/pesan)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Pesan tim terkirim 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('idTim terisi pada respons pesan', () => pm.expect(pm.response.json().data.idTim._id).to.eql(pm.environment.get('id_tim')));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_ketua}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idTim\": \"{{id_tim}}\",\n  \"isi\": \"Selamat datang semuanya di ruang kerja Tim Semelohoy!\"\n}" },
+            "url": "{{base_url}}/api/pesan"
+          }
+        },
+        {
+          "name": "Ambil Riwayat Pesan Tim (GET /api/pesan/:idTim)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Riwayat pesan tim 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('jenisObrolan adalah tim', () => { const j = pm.response.json(); pm.expect(j.data.jenisObrolan).to.eql('tim'); pm.expect(j.data.pesan.length).to.be.at.least(1); });"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_kandidat}}" }], "url": "{{base_url}}/api/pesan/{{id_tim}}" }
+        }
+      ]
+    },
+    {
+      "name": "9. Hapus & Bersihkan Data (Admin)",
+      "item": [
+        {
+          "name": "Admin - Hapus Kompetisi Uji (DELETE /api/kompetisi/:id -> 204)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Hapus kompetisi mengembalikan 204 No Content', () => pm.response.to.have.status(204));",
+            "pm.test('Body respons kosong sesuai standar RESTful GitBook', () => pm.expect(pm.response.text()).to.eql(''));"
+          ] } }],
+          "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }], "url": "{{base_url}}/api/kompetisi/{{id_kompetisi}}" }
+        }
+      ]
+    },
+    {
+      "name": "10. Skenario Gagal & Uji Keamanan (GitBook)",
+      "item": [
+        {
+          "name": "[400] Tolak NoSQL Injection pada Login",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Payload objek ditolak 400 Bad Request', () => pm.response.to.have.status(400));",
+            "pm.test('Format error berisi properti message', () => pm.expect(pm.response.json()).to.have.property('message'));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": { \"$ne\": null },\n  \"kataSandi\": \"Password123!\"\n}" },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "[400] Tolak Kata Sandi Kurang dari 8 Karakter",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Kata sandi < 8 karakter ditolak 400 Bad Request', () => pm.response.to.have.status(400));",
+            "pm.test('Pesan error menjelaskan batas minimal 8 karakter', () => pm.expect(pm.response.json().message).to.include('8'));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"namaLengkap\": \"Sandi Pendek\",\n  \"email\": \"pendek.{{$timestamp}}@mhs.mdp.ac.id\",\n  \"kataSandi\": \"123456\",\n  \"universitas\": \"Universitas MDP\",\n  \"fakultas\": \"FIKR\",\n  \"jurusan\": \"SI\"\n}" },
+            "url": "{{base_url}}/api/auth/register"
+          }
+        },
+        {
+          "name": "[400] Tolak Kolom Urutan Tidak Diizinkan",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Kolom urutan di luar daftar putih ditolak 400 Bad Request', () => pm.response.to.have.status(400));",
+            "pm.test('Format error memuat message', () => pm.expect(pm.response.json()).to.have.property('message'));"
+          ] } }],
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/kompetisi?urutkan=kolomTerlarang" }
+        },
+        {
+          "name": "[401] Akses Rute Terproteksi Tanpa Token",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Tanpa token ditolak 401 Unauthorized', () => pm.response.to.have.status(401));",
+            "pm.test('Format error memuat message', () => pm.expect(pm.response.json()).to.have.property('message'));"
+          ] } }],
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/auth/me" }
+        },
+        {
+          "name": "[403] Mahasiswa Mencoba Akses Endpoint Khusus Admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Non-admin ditolak 403 Forbidden', () => pm.response.to.have.status(403));",
+            "pm.test('Format error memuat message', () => pm.expect(pm.response.json()).to.have.property('message'));"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token_ketua}}" }], "url": "{{base_url}}/api/pengguna" }
+        },
+        {
+          "name": "[404] Endpoint Tidak Ditemukan",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Rute tidak ada dibalas 404 Not Found', () => pm.response.to.have.status(404));",
+            "pm.test('Format error memuat message', () => pm.expect(pm.response.json()).to.have.property('message'));"
+          ] } }],
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/rute-tidak-ada" }
+        }
+      ]
+    }
+  ]
+}
